@@ -1,0 +1,5 @@
+interface:
+  display_name: "Business Presentation"
+  short_description: "用金字塔原理與 SCQA 規劃故事線，並以 pptxgenjs 產出 .pptx"
+policy:
+  allow_implicit_invocation: false
