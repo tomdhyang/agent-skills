@@ -1,9 +1,10 @@
 # agent-skills
 
-Personal skill repo. See `README.md` for layout and workflows.
+`README.md` holds every recipe (install, sync, update a vendor, add a skill, add
+a vendor) and the rules. Follow it for any change here.
 
-- `skills/mine/` is mine. `skills/vendor/*` is other people's, pulled in with `git subtree`: do not edit anything under `skills/vendor/`.
-- Every skill in `skills/mine/` carries `SKILL.md` and `agents/openai.yaml`. Keep `disable-model-invocation` (Claude Code) and `policy.allow_implicit_invocation` (Codex) in agreement.
-- Frontmatter in `skills/mine/*/SKILL.md` stays within the Agent Skills spec plus `disable-model-invocation`: `name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`. Claude-only keys (`context`, `hooks`, `paths`, `argument-hint`) break claude.ai and API uploads.
-- After adding, removing, or renaming a skill, run `scripts/link.sh`.
-- When editing a skill, call the Skill tool with "writing-for-agents" first.
+- Edit only `skills/mine/` and `scripts/link.sh`; `skills/vendor/` is read-only.
+- Before writing or editing a `SKILL.md`, call the Skill tool with
+  "writing-for-agents".
+- After any change, finish by running `scripts/link.sh` and reading its output:
+  a `warn` line means the two harness flags disagree and the change is not done.

@@ -1,14 +1,16 @@
 # agent-skills
 
-My agent skills, shared between Claude Code and Codex. One repo is the source of
-truth; `scripts/link.sh` symlinks the skills I use into each harness's directory.
+One repo is the source of truth for my agent skills. Claude Code reads
+`~/.claude/skills`, Codex reads `~/.agents/skills`; `scripts/link.sh` fills both
+with per-skill symlinks into this clone. The clone lives at `~/.agents/skills-repo`.
 
 ```
-skills/
-├── mine/                 my own skills
-└── vendor/
-    └── mattpocock/       git subtree of github.com/mattpocock/skills (never edit)
+skills/mine/<name>/            my skills
+skills/vendor/<source>/        other people's repos, each a git subtree, read-only
 ```
+
+Each recipe below ends when its last line holds. `link.sh` is idempotent: run it
+whenever in doubt.
 
 ## Install on a new machine
 
@@ -17,22 +19,45 @@ git clone https://github.com/tomdhyang/agent-skills.git ~/.agents/skills-repo
 ~/.agents/skills-repo/scripts/link.sh
 ```
 
-`link.sh` links into `~/.claude/skills` (Claude Code) and `~/.agents/skills`
-(Codex). Re-run it after any change below.
+Done when `link.sh` reports the same skill count for both directories and prints
+no `warn` lines.
 
-## Add my own skill
+## Sync changes I pushed from another machine
 
-```
-skills/mine/<name>/
-├── SKILL.md              frontmatter: name, description[, disable-model-invocation: true]
-└── agents/openai.yaml    Codex metadata[, policy.allow_implicit_invocation: false]
+```bash
+cd ~/.agents/skills-repo && git pull && ./scripts/link.sh
 ```
 
-A skill is user-invoked (slash / `$` only) in **both** harnesses or neither.
-`link.sh` warns when the two files disagree.
+Edited skill bodies take effect at the next session with no further step; a
+skill added, removed, or renamed appears only after `link.sh`, which is why the
+command always runs it.
 
-- Model-invoked (default): `description` is for the model, keep trigger phrases.
-- User-invoked: set both flags; `description` is a one-line summary for a human.
+## Update a vendored source
+
+```bash
+cd ~/.agents/skills-repo
+git subtree pull --prefix=skills/vendor/mattpocock https://github.com/mattpocock/skills.git main --squash
+./scripts/link.sh
+git push
+```
+
+Done when `git push` succeeds; until then other machines keep the old version.
+`skills/vendor/mattpocock/CHANGELOG.md` says what changed.
+
+## Add a skill of my own
+
+1. Create `skills/mine/<name>/SKILL.md` and `skills/mine/<name>/agents/openai.yaml`.
+2. Decide invocation, once, for both harnesses:
+   - **Model-invoked** (default): omit `disable-model-invocation`, omit `policy` in
+     `openai.yaml`. Write `description` for the model: what it does, then the
+     triggers.
+   - **User-invoked** (slash / `$` only): `disable-model-invocation: true` in
+     `SKILL.md` and `policy.allow_implicit_invocation: false` in `openai.yaml`.
+     Write `description` as one line for a human browsing the menu.
+3. `./scripts/link.sh`, then commit and push.
+
+Done when `link.sh` prints no `warn` line for the new skill and it appears in
+both skill directories.
 
 ## Add another person's skills
 
@@ -40,21 +65,18 @@ A skill is user-invoked (slash / `$` only) in **both** harnesses or neither.
 git subtree add --prefix=skills/vendor/<name> <git-url> main --squash
 ```
 
-Then add the bucket path(s) to `BUCKETS` in `scripts/link.sh`.
-
-## Update a vendored source
-
-```bash
-git subtree pull --prefix=skills/vendor/mattpocock https://github.com/mattpocock/skills.git main --squash
-./scripts/link.sh
-```
-
-Read `skills/vendor/mattpocock/CHANGELOG.md` to see what changed.
+Then append each directory whose children are skills to `BUCKETS` in
+`scripts/link.sh`, run it, commit, push. Done when the vendor's skills appear in
+both skill directories.
 
 ## Rules
 
-- Never edit files under `skills/vendor/`. Standing behaviour goes in `~/.claude/CLAUDE.md`
-  or `~/.codex/AGENTS.md`; it survives every subtree pull with zero conflicts.
-- "Uninstall" a skill by leaving it out of a linked bucket, not by deleting it.
-- Don't name a skill folder `synced` or anything starting with `anthropic-skills`
-  (reserved by Claude Code).
+- `skills/vendor/` is read-only. Standing behaviour that should override a
+  vendor skill goes in `~/.claude/CLAUDE.md` or `~/.codex/AGENTS.md`, where a
+  subtree pull cannot conflict with it.
+- A skill is retired by leaving its bucket out of `BUCKETS`; the folder stays.
+- `SKILL.md` frontmatter stays within the Agent Skills spec
+  (`name`, `description`, `license`, `compatibility`, `metadata`,
+  `allowed-tools`) plus `disable-model-invocation`. Claude-only keys such as
+  `context`, `hooks`, `paths` make claude.ai and API uploads fail.
+- Skill folder names `synced` and `anthropic-skills*` are reserved by Claude Code.
